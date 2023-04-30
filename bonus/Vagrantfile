@@ -1,0 +1,22 @@
+Vagrant.configure(2) do |config|
+	config.vm.box = "centos/7"
+
+  	config.vm.define "gitlab-server" do |controlS|
+	  controlS.vm.hostname = "gitlab-server"
+	  controlS.vm.network "private_network", ip: "192.168.56.112"
+	  controlS.vm.provider "virtualbox" do |v|
+		  v.customize [ "modifyvm", :id, "--cpus", "4" ]
+		  v.customize [ "modifyvm", :id, "--memory", "4096" ]
+		  v.customize ["modifyvm", :id, "--natdnshostresolver1", "on"]
+				v.customize ["modifyvm", :id, "--natdnsproxy1", "on"]
+		  v.customize ["modifyvm", :id, "--name", "gitlab-server"]
+	  end
+	  config.vm.provision :shell, :inline =>  <<-SHELL
+		sudo yum -y install net-tools telnet 
+		sed -i 's/ChallengeResponseAuthentication no/ChallengeResponseAuthentication yes/g' /etc/ssh/sshd_config
+		sudo systemctl restart sshd
+		sudo systemctl disable firewalld --now
+		SHELL
+	controlS.vm.provision "shell", path: "scripts/gitlab_install.sh"
+  end
+end
